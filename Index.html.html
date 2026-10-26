@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Planta 3D | Aceite esencial de lavanda</title>
+<style>
+:root{--bg:#101713;--panel:#18221c;--line:#344238;--text:#f1f1e9;--muted:#b7c0b7;--lav:#b7a2cb;--gold:#e4b85e;--green:#8caf88}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
+#scene{position:fixed;inset:0}canvas{display:block} .overlay{position:fixed;z-index:2;pointer-events:none}.top{top:20px;left:22px;max-width:430px}.eyebrow{letter-spacing:.16em;text-transform:uppercase;color:var(--green);font-size:11px;font-weight:800}.top h1{font-size:clamp(23px,3vw,38px);line-height:1.05;margin:8px 0}.top p{color:var(--muted);max-width:390px;margin:0}.panel{background:rgba(20,29,23,.91);border:1px solid var(--line);border-radius:14px;backdrop-filter:blur(10px);box-shadow:0 12px 35px #0005}.steps{left:22px;bottom:22px;width:min(380px,calc(100vw - 44px));padding:15px;pointer-events:auto}.stepnum{color:var(--gold);font-size:11px;letter-spacing:.12em;font-weight:800;text-transform:uppercase}.steps h2{margin:5px 0 6px;font-size:20px}.steps p{color:var(--muted);margin:0 0 13px}.controls{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid #59685d;background:#243128;color:var(--text);padding:9px 12px;border-radius:9px;cursor:pointer;font-weight:700}.btn:hover{background:#344538}.btn.primary{background:var(--lav);border-color:var(--lav);color:#17121d}.progress{height:4px;background:#354238;border-radius:99px;margin-top:14px;overflow:hidden}.progress span{display:block;height:100%;width:0;background:var(--gold);transition:width .25s}.metrics{right:22px;top:22px;width:205px;padding:13px;pointer-events:auto}.metrics h3{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}.metric{padding:9px 0;border-top:1px solid #344238}.metric b{display:block;font-size:18px;color:var(--gold)}.metric small{color:var(--muted)}.legend{right:22px;bottom:22px;padding:12px 14px;max-width:245px;color:var(--muted);font-size:12px}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}.hint{position:fixed;right:245px;top:24px;color:var(--muted);font-size:11px;z-index:2;pointer-events:none}.label{position:fixed;z-index:3;display:none;background:#111915eF;border:1px solid var(--lav);padding:7px 10px;border-radius:8px;font-weight:700;pointer-events:none;max-width:190px}
+@media(max-width:700px){.metrics{top:auto;bottom:210px;right:12px;width:155px;padding:10px}.metric b{font-size:15px}.top{left:14px;top:14px;max-width:calc(100vw - 28px)}.top p{max-width:260px}.steps{left:12px;bottom:12px;width:calc(100vw - 24px)}.legend{display:none}.hint{display:none}}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<header class="overlay top"><div class="eyebrow">Proyecto industrial · Querétaro, México</div><h1>Lavanda<br><span style="color:var(--lav)">de la biomasa al aceite</span></h1><p>Recorrido 3D conceptual de una planta de extracción por arrastre de vapor. Selecciona una etapa para explorar el proceso.</p></header>
+<aside class="overlay panel metrics"><h3>Capacidad de diseño*</h3><div class="metric"><b>12,000 kg/año</b><small>Aceite esencial objetivo</small></div><div class="metric"><b>1,200 t/año</b><small>Biomasa fresca estimada</small></div><div class="metric"><b>1 %</b><small>Rendimiento supuesto</small></div><div style="font-size:10px;color:var(--muted);margin-top:9px">*Supuestos académicos por validar con pruebas y cotizaciones.</div></aside>
+<div class="overlay panel steps"><div class="stepnum" id="stepnum">ETAPA 01 / 06</div><h2 id="steptitle">Recepción de biomasa</h2><p id="stepdesc">La lavanda recién cosechada se recibe, pesa y revisa para retirar material ajeno antes de cargar el extractor.</p><div class="controls"><button class="btn" id="prev">← Anterior</button><button class="btn primary" id="next">Siguiente etapa →</button><button class="btn" id="play">▶ Recorrido automático</button></div><div class="progress"><span id="bar"></span></div></div>
+<div class="hint">Arrastra para rotar · rueda para acercar/alejar</div>
+<div class="overlay panel legend"><div><span class="dot" style="background:#b7a2cb"></span>Biomasa de lavanda</div><div><span class="dot" style="background:#d8e6eb"></span>Vapor / condensación</div><div><span class="dot" style="background:#e4b85e"></span>Aceite separado</div><div style="margin-top:7px">Modelo esquemático; distribución y equipos ilustrativos.</div></div>
+<div class="label" id="hoverlabel"></div>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+const host=document.getElementById('scene');
+window.addEventListener('error',e=>{const msg=document.createElement('div');msg.style.cssText='position:fixed;z-index:20;left:50%;top:50%;transform:translate(-50%,-50%);max-width:560px;padding:18px 22px;background:#261c20;color:#fff;border:1px solid #b7a2cb;border-radius:12px;font:14px/1.5 system-ui;box-shadow:0 12px 40px #0008';msg.textContent='No se pudo cargar la escena 3D. Comprueba tu conexión a internet y abre el archivo con Chrome o Edge. Detalle: '+(e.message||'error de carga');document.body.appendChild(msg);},{once:true});
+const scene=new THREE.Scene();scene.background=new THREE.Color('#101713');scene.fog=new THREE.Fog('#101713',28,65);
+const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,150);camera.position.set(16,13,20);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;host.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,1.1,0);controls.enableDamping=true;controls.maxPolarAngle=Math.PI*.48;controls.minDistance=9;controls.maxDistance=38;
+scene.add(new THREE.HemisphereLight(0xcbd8d0,0x20271f,2));const sun=new THREE.DirectionalLight(0xffe8c3,3);sun.position.set(9,18,9);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);
+const mat=(c,rough=.7,metal=0)=>new THREE.MeshStandardMaterial({color:c,roughness:rough,metalness:metal});
+const concrete=mat('#424b43'), floorMat=mat('#202a23'), wall=mat('#334138'), steel=mat('#aab8b8',.3,.72), darkSteel=mat('#536562',.35,.65), lavender=mat('#a992c2'), flower=mat('#c4a8db'), leaf=mat('#718b66'), gold=mat('#e4b85e',.3,.25), glass= new THREE.MeshStandardMaterial({color:'#a7d7df',roughness:.18,metalness:.1,transparent:true,opacity:.45}), steamMat=new THREE.MeshBasicMaterial({color:'#dce9ee',transparent:true,opacity:.72});
+function box(x,y,z,sx,sy,sz,m,parent=scene){const o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
+function cyl(x,y,z,r1,r2,h,m,parent=scene,seg=24){const o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
+function pipe(points,r,m,parent=scene){const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p)));const o=new THREE.Mesh(new THREE.TubeGeometry(curve,48,r,8,false),m);o.castShadow=true;parent.add(o);return o}
+// Foundation and factory hall
+box(0,-.22,0,19,.35,11,floorMat);box(0,2.35,-5.25,19,4.7,.25,wall);box(-9.35,2.35,0,.25,4.7,10.5,wall);box(9.35,2.35,0,.25,4.7,10.5,wall);
+// roof beams, deliberately open roof to show machinery
+for(let x=-8.5;x<=8.6;x+=2.8)box(x,4.75,-.1,.14,.14,10,steel);
+for(let z=-4.6;z<=4.6;z+=2.3)box(0,4.75,z,18.5,.12,.12,steel);
+// zones floor markings
+for(const [x,z,w,d] of [[-6.6,1.8,3.5,4.5],[-2.4,1.8,4,4.5],[2.3,1.8,4,4.5],[6.3,1.8,3.7,4.5]]){let m=box(x,.005,z,w,.015,d,mat('#59644e'));m.material.transparent=true;m.material.opacity=.55}
+// Reception crates and lavender bundles
+const bundles=new THREE.Group();scene.add(bundles);
+for(let i=0;i<7;i++){const x=-7.7+(i%4)*.65,z=1.1+Math.floor(i/4)*.7;box(x,.35,z,.55,.55,.55,mat('#5d4634'),bundles);for(let j=0;j<8;j++){let stem=cyl(x+(Math.random()-.5)*.25,.78,z+(Math.random()-.5)*.25,.025,.018,.55,leaf,bundles,6);stem.rotation.z=(Math.random()-.5)*.8;let head=cyl(stem.position.x,.98,stem.position.z,.07,.025,.18,flower,bundles,7);head.rotation.z=-.2}}
+// Weighing platform
+box(-6.2,.12,3.7,2.2,.22,1.5,darkSteel);for(let x=-7;x<=-5.4;x+=.8)box(x,.28,3.7,.06,.1,.06,gold);
+// Hopper and feed conveyor
+box(-4.4,.4,1.6,1.5,.15,1.1,darkSteel);const belt=box(-4.35,.63,1.6,1.6,.12,.7,mat('#242b28'));belt.rotation.z=-.05;
+// Main steam distillation vessel at x -1.7
+const vesselX=-1.8,vesselZ=1.1;cyl(vesselX,1.45,vesselZ,.95,.95,1.8,steel);cyl(vesselX,2.38,vesselZ,.85,.85,.15,darkSteel);cyl(vesselX,.48,vesselZ,.83,.83,.12,darkSteel);cyl(vesselX,2.52,vesselZ,.18,.18,.18,steel);for(let a=0;a<4;a++){let ang=a*Math.PI/2;box(vesselX+Math.cos(ang)*.75,.28,vesselZ+Math.sin(ang)*.75,.12,.55,.12,darkSteel)}
+// sight glass and gauges
+cyl(vesselX+.97,1.4,vesselZ,.09,.09,.62,glass);cyl(vesselX,2.8,vesselZ,.06,.06,.42,steel);cyl(vesselX+.45,2.15,vesselZ,.13,.13,.05,gold);cyl(vesselX+.45,2.15,vesselZ,.085,.085,.06,mat('#f3e9d1'));
+// Boiler
+const bx=-4.0,bz=-2.1;cyl(bx,.95,bz,.58,.58,1.35,darkSteel);cyl(bx,1.65,bz,.5,.5,.12,steel);cyl(bx,.23,bz,.45,.45,.12,steel);box(bx,.45,bz+.58,.5,.5,.18,mat('#313a35'));for(let i=0;i<3;i++)cyl(bx-.25+i*.25,.46,bz+.69,.045,.045,.04,gold);
+// Condenser shell and coils
+const cx=1.4,cz=.3;box(cx,1.8,cz,2.1,1.25,1.25,darkSteel);for(let i=0;i<5;i++){let x=cx-.75+i*.38;pipe([[x,1.3,-.35],[x,2.2,-.35],[x,2.2,.9],[x,1.3,.9]],.055,steel)}
+// separator / Florentine vessel
+cyl(4.25,1.25,.35,.55,.55,1.45,glass);cyl(4.25,2.02,.35,.5,.5,.1,steel);cyl(4.25,.48,.35,.15,.15,.25,gold);cyl(4.25,1.05,.35,.5,.5,.08,gold);
+// lab and storage
+box(6.6,.55,1.0,2.6,.9,1.3,mat('#36483d'));box(6.6,1.1,1,2.45,.12,1.2,steel);for(let i=0;i<3;i++){cyl(5.9+i*.65,1.48,1,.16,.16,.55,glass);cyl(5.9+i*.65,1.75,1,.17,.17,.07,gold)}
+for(let i=0;i<3;i++){cyl(6.2+i*.9,.85,3.3,.28,.28,1.2,steel);cyl(6.2+i*.9,1.48,3.3,.25,.25,.08,darkSteel)}
+// Pipes: boiler -> extractor -> condenser -> separator -> storage
+pipe([[bx,1.7,bz],[bx,2.7,bz],[vesselX,2.7,bz],[vesselX,2.7,vesselZ]],.09,steel);
+pipe([[vesselX,2.6,vesselZ],[vesselX,3.45,vesselZ],[cx-.8,3.45,vesselZ],[cx-.8,2.35,cz]],.085,mat('#c6d7dc',.3,.4));
+pipe([[cx+1,1.8,cz],[3.3,1.8,cz],[3.3,2.2,cz],[4.25,2.2,.35]],.07,steel);
+pipe([[4.25,.55,.35],[4.25,.25,.35],[6.1,.25,.35],[6.1,.45,3.3]],.06,gold);
+// exterior lavender rows, behind building
+for(let row=0;row<7;row++)for(let i=0;i<23;i++){const x=-8.7+i*.78,z=-9.1-row*.48;let stem=cyl(x,.18,z,.025,.02,.36,leaf,scene,5);stem.rotation.x=.15;for(let j=0;j<3;j++){let f=cyl(x+(j-1)*.06,.34,z,.035,.02,.12,flower,scene,6);f.rotation.z=(j-1)*.2}}
+// Label signs
+function sign(text,x,z,w){box(x,3.6,z,w,.62,.08,mat('#17221b'));}
+sign('RECEPCIÓN',-6.6,-.1,2.8);sign('EXTRACCIÓN',-1.8,-.1,2.8);sign('CONDENSACIÓN',1.4,-1.2,2.8);sign('SEPARACIÓN',4.25,-1.2,2.4);sign('CALIDAD Y ALMACÉN',6.4,-.1,3.5);
+// Floating steam / liquid particles animate along stages
+const particles=[];const pGeo=new THREE.SphereGeometry(.065,8,8);for(let i=0;i<48;i++){const p=new THREE.Mesh(pGeo,steamMat);scene.add(p);particles.push({mesh:p,t:Math.random(),speed:.07+Math.random()*.08,phase:Math.random()*Math.PI*2})}
+const steamPath=new THREE.CatmullRomCurve3([[bx,1.8,bz],[bx,2.7,bz],[vesselX,2.7,bz],[vesselX,2.7,vesselZ],[vesselX,3.45,vesselZ],[cx-.8,3.45,vesselZ],[cx-.8,2.35,cz]].map(p=>new THREE.Vector3(...p)));
+const liquidPath=new THREE.CatmullRomCurve3([[cx+1,1.8,cz],[3.3,1.8,cz],[3.3,2.2,cz],[4.25,2.2,.35],[4.25,.7,.35],[4.25,.3,.35],[6.1,.3,.35],[6.1,.55,3.3]].map(p=>new THREE.Vector3(...p)));
+// stage spotlight rings
+const rings=[];for(const [x,z] of [[-6.6,1.8],[-4.1,-2.1],[-1.8,1.1],[1.4,.3],[4.25,.35],[6.3,1.8]]){const r=new THREE.Mesh(new THREE.TorusGeometry(1.25,.035,8,48),new THREE.MeshBasicMaterial({color:'#b7a2cb',transparent:true,opacity:.8}));r.rotation.x=Math.PI/2;r.position.set(x,.12,z);scene.add(r);rings.push(r)}
+const steps=[
+{title:'Recepción de biomasa',desc:'La lavanda recién cosechada se recibe, pesa y revisa para retirar material ajeno antes de cargar el extractor.',cam:[-7,7,10],target:[-6,1,1.7],idx:0},
+{title:'Generación de vapor',desc:'Una caldera genera vapor de agua. La presión y temperatura reales dependen del diseño del equipo y deben definirse con el proveedor.',cam:[-7,6,7],target:[-3.8,1.3,-1.5],idx:1},
+{title:'Extracción por arrastre de vapor',desc:'El vapor atraviesa la biomasa y arrastra compuestos volátiles. La mezcla de vapor y componentes aromáticos sale hacia el condensador.',cam:[-3,6,8],target:[-1.8,1.7,1.1],idx:2},
+{title:'Condensación',desc:'La mezcla pasa por un condensador, donde se enfría y vuelve a estado líquido para formar una mezcla de agua y aceite esencial.',cam:[3,6,7],target:[1.4,1.6,.3],idx:3},
+{title:'Separación del aceite',desc:'En el separador, el aceite esencial y el hidrolato se separan por sus propiedades físicas. La separación real depende de la densidad y del equipo.',cam:[6,5,6],target:[4.25,1.1,.35],idx:4},
+{title:'Control de calidad y almacenamiento',desc:'El lote se identifica, analiza y almacena en recipientes compatibles y protegidos de luz, calor y contaminación antes de venderse a clientes industriales.',cam:[8,6,7],target:[6.4,1.3,1.8],idx:5}
+];let current=0,playing=false,timer=null;
+function setStep(i){current=(i+steps.length)%steps.length;const s=steps[current];document.getElementById('stepnum').textContent=`ETAPA ${String(current+1).padStart(2,'0')} / 06`;document.getElementById('steptitle').textContent=s.title;document.getElementById('stepdesc').textContent=s.desc;document.getElementById('bar').style.width=((current+1)/steps.length*100)+'%';rings.forEach((r,j)=>{r.material.opacity=j===s.idx?1:.18;r.scale.setScalar(j===s.idx?1.12:0.78)});controls.target.lerp(new THREE.Vector3(...s.target),.6);camera.position.lerp(new THREE.Vector3(...s.cam),.6);}
+document.getElementById('prev').onclick=()=>setStep(current-1);document.getElementById('next').onclick=()=>setStep(current+1);document.getElementById('play').onclick=()=>{playing=!playing;document.getElementById('play').textContent=playing?'Ⅱ Pausar recorrido':'▶ Recorrido automático';if(playing){timer=setInterval(()=>setStep(current+1),6500)}else clearInterval(timer)};
+const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2(),label=document.getElementById('hoverlabel');const interactive=[{obj:bundles,name:'Recepción de biomasa'},{obj:scene.children.find(o=>o.position?.x===vesselX&&o.position?.z===vesselZ),name:'Extractor de arrastre de vapor'}];
+window.addEventListener('pointermove',e=>{mouse.x=e.clientX/innerWidth*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;raycaster.setFromCamera(mouse,camera);const hits=raycaster.intersectObjects(scene.children,true);if(hits.length){const o=hits[0].object;let textLabel='';if(o.position.x<-5&&o.position.z>0)textLabel='Recepción de biomasa';else if(Math.abs(o.position.x-vesselX)<1.1&&Math.abs(o.position.z-vesselZ)<1)textLabel='Extractor · arrastre de vapor';else if(o.position.x>3.6&&o.position.x<4.9)textLabel='Separación de aceite';else if(o.position.x>.2&&o.position.x<2.7)textLabel='Condensador';if(textLabel){label.style.display='block';label.style.left=Math.min(e.clientX+14,innerWidth-205)+'px';label.style.top=Math.min(e.clientY+14,innerHeight-60)+'px';label.textContent=textLabel}else label.style.display='none'}else label.style.display='none'});
+setStep(0);function animate(t){requestAnimationFrame(animate);const time=t*.001;particles.forEach((p,i)=>{p.t=(p.t+p.speed*.006)%1;const pos=steamPath.getPointAt(p.t);p.mesh.position.copy(pos);p.mesh.position.x+=Math.sin(time*2+p.phase)*.045;p.mesh.position.y+=Math.sin(time*3+p.phase)*.035;p.mesh.visible=current>=1&&current<=3;});rings.forEach((r,i)=>{r.rotation.z=time*.2;if(i===current)r.scale.setScalar(1.08+Math.sin(time*3)*.08)});controls.update();renderer.render(scene,camera)}animate(0);
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script>
+</body></html>
